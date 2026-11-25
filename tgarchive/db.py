@@ -10,6 +10,7 @@ from typing import Iterator
 schema = """
 CREATE table messages (
     id INTEGER NOT NULL PRIMARY KEY,
+    grouped_id INTEGER,
     type TEXT NOT NULL,
     date TIMESTAMP NOT NULL,
     edit_date TIMESTAMP,
@@ -44,7 +45,7 @@ User = namedtuple(
     "User", ["id", "username", "first_name", "last_name", "tags", "avatar"])
 
 Message = namedtuple(
-    "Message", ["id", "type", "date", "edit_date", "content", "reply_to", "user", "media"])
+    "Message", ["id", "grouped_id", "type", "date", "edit_date", "content", "reply_to", "user", "media"])
 
 Media = namedtuple(
     "Media", ["id", "type", "url", "title", "description", "thumb"])
@@ -122,7 +123,7 @@ class DB:
     def get_dayline(self, year, month, limit=500) -> Iterator[Day]:
         """
         Get the list of all unique yyyy-mm-dd days corresponding
-        message counts and the page number of the first occurrence of 
+        message counts and the page number of the first occurrence of
         the date in the pool of messages for the whole month.
         """
         cur = self.conn.cursor()
@@ -151,7 +152,7 @@ class DB:
 
         cur = self.conn.cursor()
         cur.execute("""
-            SELECT messages.id, messages.type, messages.date, messages.edit_date,
+            SELECT messages.id, messages.grouped_id, messages.type, messages.date, messages.edit_date,
             messages.content, messages.reply_to, messages.user_id,
             users.username, users.first_name, users.last_name, users.tags, users.avatar,
             media.id, media.type, media.url, media.title, media.description, media.thumb
@@ -201,9 +202,10 @@ class DB:
     def insert_message(self, m: Message):
         cur = self.conn.cursor()
         cur.execute("""INSERT OR REPLACE INTO messages
-            (id, type, date, edit_date, content, reply_to, user_id, media_id)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?)""",
+            (id, grouped_id, type, date, edit_date, content, reply_to, user_id, media_id)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (m.id,
+                     m.grouped_id,
                      m.type,
                      m.date.strftime("%Y-%m-%d %H:%M:%S"),
                      m.edit_date.strftime(
@@ -220,7 +222,7 @@ class DB:
 
     def _make_message(self, m) -> Message:
         """Makes a Message() object from an SQL result tuple."""
-        id, typ, date, edit_date, content, reply_to, \
+        id, grouped_id, typ, date, edit_date, content, reply_to, \
             user_id, username, first_name, last_name, tags, avatar, \
             media_id, media_type, media_url, media_title, media_description, media_thumb = m
 
@@ -245,6 +247,7 @@ class DB:
             edit_date = edit_date.astimezone(self.tz) if edit_date else None
 
         return Message(id=id,
+                       grouped_id=grouped_id,
                        type=typ,
                        date=date,
                        edit_date=edit_date,
