@@ -178,6 +178,7 @@ class Sync:
             yield Message(
                 type=typ,
                 id=m.id,
+                grouped_id=m.grouped_id,
                 date=m.date,
                 edit_date=m.edit_date,
                 content=sticker if sticker else m.raw_text,
@@ -321,7 +322,7 @@ class Sync:
     def _download_media(self, msg) -> [str, str, str]:
         """
         Download a media / file attached to a message and return its original
-        filename, sanitized name on disk, and the thumbnail (if any). 
+        filename, sanitized name on disk, and the thumbnail (if any).
         """
         # Download the media to the temp dir and copy it back as
         # there does not seem to be a way to get the canonical
